@@ -1,0 +1,88 @@
+version: '2.3'
+services:
+    ipv6nat:
+            restart: unless-stopped
+            image: "us-docker.pkg.dev/omgwtfbbq/gcr.io/ipv6nat:3"
+            privileged: true
+            network_mode: "host"
+            volumes:
+                    - "/var/run/docker.sock:/var/run/docker.sock:ro"                                                           
+                    - "/lib/modules:/lib/modules:ro"
+    unbound:
+            restart: unless-stopped
+            read_only: true
+            tmpfs:
+              - /tmp
+              - /var/tmp
+              - /var/log
+            security_opt:
+              - no-new-privileges:true
+            runtime: io.containerd.kata.v2
+            image: "us-docker.pkg.dev/omgwtfbbq/gcr.io/alpine-unbound:27"
+            volumes:
+                    - "/docker/resolv.conf:/etc/resolv.conf"
+                    - "/docker/unbound.conf:/etc/unbound/unbound.conf"
+            mem_limit: 8g
+            networks:
+                    omgwtfbbq:
+                            ipv4_address: 172.19.1.50
+            dns: 172.19.1.50
+    wtf:
+            restart: unless-stopped
+            read_only: true
+            security_opt:
+              - no-new-privileges:true
+            runtime: io.containerd.kata.v2
+            volumes:
+                    - "/docker/resolv.conf:/etc/resolv.conf"
+                    - "/usr/local/tmp:/usr/local/tmp"
+            image: "us-docker.pkg.dev/omgwtfbbq/gcr.io/wtf-standalone:5.5.0a"
+            networks:
+                    omgwtfbbq:
+                            ipv4_address: 172.19.1.200
+            dns: 172.19.1.50
+            mem_limit: 16g
+            ports:
+              - "65.108.75.112:80:10080"
+              - "65.108.75.112:443:10443"
+              - "65.108.75.112:443:10443/udp"
+              - "[2a01:4f9:6b:4b55::acab:f001]:80:10080"
+              - "[2a01:4f9:6b:4b55::acab:f001]:443:10443"
+              - "[2a01:4f9:6b:4b55::acab:f001]:443:10443/udp"
+
+    stun:
+            restart: unless-stopped
+            read_only: true
+            tmpfs:
+              - /tmp
+              - /var/tmp
+              - /var/log
+            security_opt:
+              - no-new-privileges:true
+            runtime: io.containerd.kata.v2
+            image: "us-docker.pkg.dev/omgwtfbbq/gcr.io/alpine-stun:16"
+            mem_limit: 128m
+            volumes:
+                    - "/docker/turnserver/turnserver.conf:/etc/turnserver.conf"
+            networks:
+                    omgwtfbbq:
+                            ipv4_address: 172.19.1.150
+            ports:
+              - "3478:3478/udp"
+    redis:
+            restart: unless-stopped
+            #read_only: true
+            runtime: io.containerd.kata.v2
+            security_opt:
+              - no-new-privileges:true
+            image: "us-docker.pkg.dev/omgwtfbbq/gcr.io/alpine-redis:10"
+            mem_limit: 256m
+            networks:
+                    omgwtfbbq:
+                            ipv4_address: 172.19.1.70
+            dns: 172.19.1.50
+
+
+networks:
+        omgwtfbbq:
+                external: true
